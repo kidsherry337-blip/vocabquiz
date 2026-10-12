@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>통합 단어 암기 프로그램</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Pretendard', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            background-color: #f0f4f8;
+            margin: 0; padding: 20px;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            width: 100%; max-width: 650px;
+        }
+        h1 { text-align: center; color: #1e293b; font-size: 24px; margin-top: 0; margin-bottom: 20px; }
+        .quiz-info {
+            display: flex; justify-content: space-between;
+            color: #64748b; font-size: 15px; margin-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; font-weight: 600;
+        }
+        .question-box {
+            background-color: #f8fafc; padding: 25px;
+            border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;
+            min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .question-type-badge {
+            display: inline-block; background-color: #e2e8f0; color: #475569;
+            font-size: 12px; padding: 4px 8px; border-radius: 6px; font-weight: bold; margin-bottom: 10px;
+        }
+        .word-title {
+            font-size: 28px; font-weight: bold; color: #0f172a; text-align: center;
+        }
+        .sentence-text {
+            font-size: 18px; color: #334155; line-height: 1.6; text-align: center; word-break: keep-all;
+        }
+        .options-container {
+            display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;
+        }
+        .option-btn {
+            background-color: #ffffff; border: 2px solid #e2e8f0;
+            padding: 14px 18px; border-radius: 10px; font-size: 16px;
+            text-align: left; cursor: pointer; transition: all 0.2s ease;
+            color: #1e293b; font-weight: 500;
+        }
+        .option-btn:hover:not(:disabled) {
+            background-color: #eff6ff; border-color: #3b82f6; color: #1d4ed8;
+        }
+        .option-btn.correct {
+            background-color: #dcfce7 !important; border-color: #22c55e !important; color: #15803d !important; font-weight: bold;
+        }
+        .option-btn.incorrect {
+            background-color: #fee2e2 !important; border-color: #ef4444 !important; color: #b91c1c !important;
+        }
+        .next-btn, .action-btn {
+            background-color: #2563eb; color: white; border: none;
+            width: 100%; padding: 14px; font-size: 16px; font-weight: bold;
+            border-radius: 10px; cursor: pointer; transition: background-color 0.2s;
+        }
+        .next-btn:hover, .action-btn:hover { background-color: #1d4ed8; }
+        .result-box { display: none; }
+        .wrong-notes-list {
+            background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+            padding: 15px; max-height: 250px; overflow-y: auto; text-align: left; margin: 15px 0;
+        }
+        .wrong-item {
+            padding: 8px 0; border-bottom: 1px solid #cbd5e1; font-size: 15px; color: #334155;
+        }
+        .wrong-item:last-child { border-bottom: none; }
+        .wrong-word { font-weight: bold; color: #dc2626; display: inline-block; width: 140px; }
+        .history-box {
+            margin-top: 25px; border-top: 2px dashed #e2e8f0; padding-top: 15px; text-align: left;
+        }
+        .history-title { font-size: 16px; font-weight: bold; color: #475569; margin-bottom: 10px; }
+        .history-item { font-size: 14px; color: #64748b; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📚 통합 단어 암기 프로그램</h1>
+
+    <!-- 퀴즈 화면 -->
+    <div id="quiz-screen">
+        <div class="quiz-info">
+            <span id="stage-text" style="color: #2563eb;">[1차 전체 풀이]</span>
+            <span id="progress-text">문제 1 / 89</span>
+            <span id="score-text">맞힌 개수: 0 / 89</span>
+        </div>
+
+        <div class="question-box">
+            <div id="question-badge" class="question-type-badge">유형</div>
+            <div id="question-content">
+                <!-- 문제 들어갈 자리 -->
+            </div>
+        </div>
+
+        <div class="options-container" id="options-container">
+            <!-- 선지 4개 -->
+        </div>
+
+        <button id="next-btn" class="next-btn" style="display: none;" onclick="nextQuestion()">다음 문제</button>
+    </div>
+
+    <!-- 결과 화면 -->
+    <div id="result-screen" class="result-box">
+        <h2 id="result-title" style="text-align: center; color: #1e293b;">🎉 학습 결과</h2>
+        <p id="final-summary" style="text-align: center; font-size: 18px; color: #334155; margin: 15px 0;"></p>
+
+        <!-- 틀린 단어 정리 노드가 들어갈 자리 -->
+        <div id="wrong-note-container" style="display: none;">
+            <h3 style="font-size: 16px; color: #dc2626; margin-bottom: 8px;">📌 최종 틀린 단어 정리</h3>
+            <div id="wrong-notes-list" class="wrong-notes-list"></div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <button id="re-quiz-btn" class="action-btn" style="background-color: #dc2626; display: none; margin-bottom: 10px;" onclick="startWrongQuiz()">🔄 틀린 문제 다시 풀기</button>
+            <button id="restart-btn" class="action-btn" style="background-color: #10b981;" onclick="restartAll()">✨ 처음부터 다시 시작하기</button>
+        </div>
+
+        <!-- 누적 학습 기록 -->
+        <div class="history-box">
+            <div class="history-title">📜 누적 학습 기록</div>
+            <div id="history-list">
+                <div class="history-item">아직 기록이 없습니다.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 전체 89개 단어 데이터[cite: 2, 3, 4]
+    const vocabList = [
+        // All Summer in a Day[cite: 2]
+        { word: "peer", korean: "응시하다, 유심히 보다", sentence: "They pushed each other and peered out at the rain." },
+        { word: "compound", korean: "혼합하다, 합성물", sentence: "The compound contained many different elements mixed together." },
+        { word: "concussion", korean: "뇌진탕, 충격", sentence: "He suffered a concussion after taking a strong hit to the head." },
+        { word: "remembrance", korean: "기억, 추억", sentence: "They held a ceremony in remembrance of the past events." },
+        { word: "tremble", korean: "떨다, 흔들리다", sentence: "She began to tremble from fear and cold." },
+        { word: "protest", korean: "항의하다, 항의", sentence: "The students began to protest against the decision." },
+        { word: "slacken", korean: "느슨해지다, 약해지다", sentence: "The rain began to slacken and eventually stopped." },
+        { word: "spoke", korean: "바퀴살", sentence: "One spoke of the bicycle wheel was bent." },
+        { word: "shove", korean: "(거칠게) 밀다, 밀침", sentence: "They gave him a shove and pushed him into the closet." },
+        { word: "drenched", korean: "흠뻑 젖은", sentence: "They were drenched completely by the sudden heavy rain." },
+        { word: "patterning", korean: "무늬를 이루다, 무늬를 만드는", sentence: "The falling rain was patterning the glass window." },
+        { word: "savagely", korean: "거칠게, 잔인하게", sentence: "The wind blew savagely across the empty landscape." },
+        { word: "seize", korean: "붙잡다, 움켜쥐다", sentence: "She tried to seize the chance before it vanished." },
+        { word: "surge", korean: "밀려들다, 급증", sentence: "A surge of excitement moved through the crowd." },
+        { word: "plead", korean: "간청하다", sentence: "She tried to plead with them to let her out." },
+        { word: "muffled", korean: "(소리가) 죽은, 약해진", sentence: "They heard a muffled cry from behind the closed door." },
+        { word: "glance", korean: "흘끗 보다, 흘끗 봄", sentence: "He stole a quick glance at his watch." },
+        { word: "avalanche", korean: "눈사태", sentence: "The heavy snow triggered a dangerous avalanche." },
+        { word: "apparatus", korean: "장치, 기구", sentence: "The scientific apparatus was carefully set up in the lab." },
+        { word: "repercussion", korean: "울림, 반향", sentence: "The loud sound created a reverberating repercussion." },
+        { word: "tremor", korean: "떨림, 진동", sentence: "A small tremor shook the ground beneath their feet." },
+        { word: "standstill", korean: "정지, 멈춤", sentence: "Traffic came to a complete standstill." },
+        { word: "immense", korean: "엄청난, 거대한", sentence: "They stared at the immense size of the sun." },
+        { word: "squint", korean: "눈을 가늘게 뜨다", sentence: "She had to squint to see through the bright light." },
+        { word: "savor", korean: "음미하다, 충분히 즐기다", sentence: "They wanted to savor every moment of sunshine." },
+        { word: "wail", korean: "울부짖다, 울부짖음", sentence: "The child began to wail loudly in pain." },
+        { word: "solemn", korean: "엄숙한, 진지한", sentence: "Their faces turned solemn as they realized what they had done." },
+
+        // The Lottery[cite: 3]
+        { word: "profusely", korean: "풍부하게, 많이", sentence: "The flowers were blooming profusely in the warm weather." },
+        { word: "boisterous", korean: "시끌벅적한, 활기찬", sentence: "The children gathered together with boisterous laughter." },
+        { word: "reprimand", korean: "질책하다, 꾸중", sentence: "He received a sharp reprimand for arriving late." },
+        { word: "raid", korean: "습격하다, 빼앗다", sentence: "The boys made a sudden raid on the pile of stones." },
+        { word: "survey", korean: "살펴보다, 둘러보다", sentence: "He stood up to survey the entire crowd." },
+        { word: "reluctantly", korean: "마지못해, 내키지 않게", sentence: "She walked forward reluctantly to take her turn." },
+        { word: "duck", korean: "몸을 숙이다, 재빨리 피하다", sentence: "He had to duck quickly to avoid getting hit." },
+        { word: "jovial", korean: "쾌활한, 명랑한", sentence: "The man was a jovial person who liked to joke around." },
+        { word: "scold", korean: "꾸짖다, 잔소리하다", sentence: "The mother began to scold the children for playing in the dirt." },
+        { word: "murmur", korean: "중얼거리다, 웅성거림", sentence: "A quiet murmur went through the crowd." },
+        { word: "paraphernalia", korean: "장비, 도구 일체", sentence: "The black box and other paraphernalia were prepared." },
+        { word: "precede", korean: "앞서다", sentence: "Official speeches usually precede the main event." },
+        { word: "perfunctory", korean: "형식적인, 무성의한", sentence: "He gave a perfunctory nod without paying attention." },
+        { word: "duly", korean: "정해진 대로, 예정대로", sentence: "The forms were duly filled out and submitted." },
+        { word: "lapse", korean: "중단되다, 폐지되다", sentence: "The custom was allowed to lapse over time." },
+        { word: "interminably", korean: "끝없이, 지루할 정도로 오래", sentence: "The long speech seemed to go on interminably." },
+        { word: "crane", korean: "목을 길게 빼다", sentence: "She had to crane her neck to see over the crowd." },
+        { word: "soberly", korean: "진지하게, 엄숙하게", sentence: "They spoke soberly about the serious matter." },
+        { word: "disengage", korean: "빠져나오다, 떨어져 나오다", sentence: "He tried to disengage himself from the conversation." },
+        { word: "gravely", korean: "진지하게, 엄숙하게", sentence: "The leader nodded gravely to signal the start." },
+        { word: "petulantly", korean: "짜증스럽게, 심술궂게", sentence: "She complained petulantly about the delay." },
+        { word: "stoutly", korean: "단호하게, 완강하게", sentence: "He stoutly defended his point of view." },
+        { word: "daintily", korean: "섬세하고 조심스럽게", sentence: "She held the small paper daintily with two fingers." },
+        { word: "defiantly", korean: "반항적으로, 도전적으로", sentence: "He looked at them defiantly and refused to move." },
+        { word: "snatch", korean: "낚아채다, 낚아챔", sentence: "He tried to snatch the paper out of her hand." },
+
+        // The Story of an Hour[cite: 4]
+        { word: "afflicted", korean: "괴로움을 겪는, 고통받는", sentence: "Knowing that Mrs. Mallard was afflicted with heart trouble, they broke the news gently." },
+        { word: "veiled", korean: "베일로 가려진, 감춰진", sentence: "The message was conveyed in veiled hints." },
+        { word: "intelligence", korean: "지능, 정보", sentence: "Her sister's friend had received news and intelligence about the accident." },
+        { word: "hasten", korean: "서두르다, 재촉하다", sentence: "He sought to hasten to forestall any less careful friend." },
+        { word: "forestall", korean: "미연에 방지하다", sentence: "She acted quickly to forestall any further rumor." },
+        { word: "bear", korean: "참다, 견디다, 지니다", sentence: "She could hardly bear the sudden heavy sadness." },
+        { word: "paralyzed", korean: "움직이지 못하는, 무력한", sentence: "She sat paralyzed with grief in her chair." },
+        { word: "exhaustion", korean: "기진맥진, 피로", sentence: "A physical exhaustion haunted her body and mind." },
+        { word: "aquiver", korean: "흥분이나 감정으로 떨리는", sentence: "The trees were all aquiver with the new spring life." },
+        { word: "ware", korean: "상품, 물품", sentence: "A peddler was crying his wares in the street below." },
+        { word: "bespoke", korean: "나타내다, 맞춤 제작의", sentence: "The expression on her face bespoke a quiet strength." },
+        { word: "repression", korean: "억압, 억제", sentence: "Her face showed lines of restraint and repression." },
+        { word: "yonder", korean: "저쪽에", sentence: "She looked out at the blue sky yonder." },
+        { word: "suspension", korean: "일시적으로 중단함", sentence: "There was a temporary suspension of all sound." },
+        { word: "subtle", korean: "미묘한, 섬세한", sentence: "She felt a subtle change approaching her." },
+        { word: "elusive", korean: "찾기/이해하기 어려운", sentence: "The feeling was too elusive to name immediately." },
+        { word: "tumultuously", korean: "소란스럽고 격렬하게", sentence: "Her chest rose and fell tumultuously." },
+        { word: "strive", korean: "노력하다, 애쓰다", sentence: "She strove to beat the feeling back with her will." },
+        { word: "vacant", korean: "비어 있는, 사용되지 않는", sentence: "She stared into the vacant space outside." },
+        { word: "keen", korean: "날카로운, 생기 있는", sentence: "Her eyes stayed keen and bright." },
+        { word: "monstrous", korean: "흉측한, 끔찍한", sentence: "She wondered if it was a monstrous joy that held her." },
+        { word: "exalted", korean: "높은 지위의, 큰 기쁨의", sentence: "A clear and exalted perception filled her mind." },
+        { word: "dismiss", korean: "묵살하다, 해고하다", sentence: "She dismissed the thought as trivial." },
+        { word: "trivial", korean: "사소한, 중요하지 않은", sentence: "It was a trivial detail in the larger context." },
+        { word: "persistence", korean: "끈기, 인내", sentence: "She admired his persistence despite the hardship." },
+        { word: "illumination", korean: "빛, 조명, 깨달음", sentence: "A sudden illumination revealed the truth to her." },
+        { word: "self-assertion", korean: "자기 주장, 자신감", sentence: "Possession of self-assertion was her strongest impulse." },
+        { word: "impulse", korean: "충동", sentence: "She acted on a sudden impulse of freedom." },
+        { word: "implore", korean: "간청하다, 애원하다", sentence: "Her sister implored her to open the door." },
+        { word: "elixir", korean: "영약, 만병통치약", sentence: "She was drinking in a very elixir of life." },
+        { word: "run riot", korean: "제멋대로 뻗어나가다", sentence: "Her fancy was running riot along those days ahead." },
+        { word: "shudder", korean: "몸서리, 전율", sentence: "A shudder of cold fear passed through her." },
+        { word: "importunity", korean: "끈질긴 부탁, 집요함", sentence: "She opened the door at last to her sister's importunity." },
+        { word: "feverish", korean: "열광적인, 열이 있는 듯한", sentence: "There was a feverish triumph in her eyes." },
+        { word: "unwittingly", korean: "자신도 모르게, 무의식적으로", sentence: "She unwittingly walked straight into the room." },
+        { word: "descend", korean: "내려가다, 내려오다", sentence: "They began to descend the stairs together." },
+        { word: "composedly", korean: "침착하게", sentence: "She answered the question calmly and composedly." }
+    ];
+
+    let currentQuestions = [];
+    let wrongQuestions = [];
+    let currentIndex = 0;
+    let correctCount = 0;
+    let answered = false;
+    let isWrongMode = false;
+    let historyLogs = [];
+
+    function shuffle(array) {
+        let arr = [...array];
+        for (let i = arr.length - 1; i > 0; i--) {
+            let j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    function restartAll() {
+        isWrongMode = false;
+        wrongQuestions = [];
+        currentQuestions = shuffle(vocabList);
+        startQuiz();
+    }
+
+    function startWrongQuiz() {
+        isWrongMode = true;
+        currentQuestions = shuffle([...wrongQuestions]);
+        wrongQuestions = []; // 재풀이 중 새로 틀린 것 기록 위해 초기화
+        startQuiz();
+    }
+
+    function startQuiz() {
+        currentIndex = 0;
+        correctCount = 0;
+        document.getElementById('quiz-screen').style.display = 'block';
+        document.getElementById('result-screen').style.display = 'none';
+        
+        document.getElementById('stage-text').innerText = isWrongMode ? "[🔥 오답 재풀이]" : "[1차 전체 풀이]";
+        document.getElementById('stage-text').style.color = isWrongMode ? "#dc2626" : "#2563eb";
+
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        answered = false;
+        document.getElementById('next-btn').style.display = 'none';
+        
+        const qData = currentQuestions[currentIndex];
+        document.getElementById('progress-text').innerText = `문제 ${currentIndex + 1} / ${currentQuestions.length}`;
+        document.getElementById('score-text').innerText = `맞힌 개수: ${correctCount} / ${currentQuestions.length}`;
+
+        // 50% 확률로 문제 유형 결정 (1: 뜻 맞히기, 2: 예문 빈칸 맞히기)
+        const qType = Math.random() < 0.5 ? 1 : 2;
+        
+        const badge = document.getElementById('question-badge');
+        const qContent = document.getElementById('question-content');
+        const optionsContainer = document.getElementById('options-container');
+        optionsContainer.innerHTML = '';
+
+        let correctAnswerText = "";
+        let options = [];
+
+        if (qType === 1) {
+            badge.innerText = "유형 1 : 단어의 뜻 고르기";
+            badge.style.backgroundColor = "#e0e7ff";
+            badge.style.color = "#3730a3";
+            qContent.innerHTML = `<div class="word-title">${qData.word}</div>`;
+            correctAnswerText = qData.korean;
+
+            // 매번 무작위로 다른 오답 3개 선지 추출
+            let wrongPool = vocabList.filter(item => item.korean !== qData.korean);
+            let wrongOptions = shuffle(wrongPool).slice(0, 3).map(item => item.korean);
+            options = shuffle([correctAnswerText, ...wrongOptions]);
+
+        } else {
+            badge.innerText = "유형 2 : 예문 빈칸 고르기";
+            badge.style.backgroundColor = "#fef3c7";
+            badge.style.color = "#92400e";
+            
+            const regex = new RegExp(qData.word, 'gi');
+            const blankSentence = qData.sentence.replace(regex, '___');
+            
+            qContent.innerHTML = `<div class="sentence-text">"${blankSentence}"</div>`;
+            correctAnswerText = qData.word;
+
+            // 매번 무작위로 다른 오답 3개 선지 추출
+            let wrongPool = vocabList.filter(item => item.word !== qData.word);
+            let wrongOptions = shuffle(wrongPool).slice(0, 3).map(item => item.word);
+            options = shuffle([correctAnswerText, ...wrongOptions]);
+        }
+
+        options.forEach((optText, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = `선지 ${index + 1} : ${optText}`;
+            btn.onclick = () => selectOption(btn, optText, correctAnswerText, qData);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function selectOption(selectedBtn, selectedText, correctText, qData) {
+        if (answered) return;
+        answered = true;
+
+        const buttons = document.querySelectorAll('.option-btn');
+        let isCorrect = selectedText === correctText;
+
+        buttons.forEach(btn => {
+            if (btn.innerText.includes(correctText)) {
+                btn.classList.add('correct');
+            }
+            if (btn === selectedBtn && !isCorrect) {
+                btn.classList.add('incorrect');
+            }
+            btn.disabled = true;
+        });
+
+        if (isCorrect) {
+            correctCount++;
+            document.getElementById('score-text').innerText = `맞힌 개수: ${correctCount} / ${currentQuestions.length}`;
+        } else {
+            // 중복 방지하여 오답 목록에 추가
+            if (!wrongQuestions.some(item => item.word === qData.word)) {
+                wrongQuestions.push(qData);
+            }
+        }
+
+        const nextBtn = document.getElementById('next-btn');
+        nextBtn.innerText = (currentIndex < currentQuestions.length - 1) ? "다음 문제" : "결과 보기";
+        nextBtn.style.display = 'block';
+    }
+
+    function nextQuestion() {
+        currentIndex++;
+        if (currentIndex < currentQuestions.length) {
+            loadQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    function showResult() {
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+
+        const total = currentQuestions.length;
+        const finalSummary = document.getElementById('final-summary');
+        const reQuizBtn = document.getElementById('re-quiz-btn');
+        const wrongNoteContainer = document.getElementById('wrong-note-container');
+        const wrongNotesList = document.getElementById('wrong-notes-list');
+
+        finalSummary.innerHTML = `이번 풀이 결과: <strong>${total}문제</strong> 중 <strong>${correctCount}문제</strong> 정답!`;
+
+        // 히스토리 추가
+        const now = new Date().toLocaleTimeString();
+        const stageName = isWrongMode ? "오답 재풀이" : "1차 풀이";
+        historyLogs.unshift(`[${now}] ${stageName} - ${total}문제 중 ${correctCount}개 정답 (오답 ${wrongQuestions.length}개)`);
+        updateHistoryUI();
+
+        // 틀린 문제가 있는 경우
+        if (wrongQuestions.length > 0) {
+            reQuizBtn.style.display = 'block';
+            reQuizBtn.innerText = `🔄 틀린 문제 (${wrongQuestions.length}개) 다시 풀기`;
+
+            // 오답 노트 요약 노출 ("영어 단어 : 한글 뜻")
+            wrongNoteContainer.style.display = 'block';
+            wrongNotesList.innerHTML = '';
+            wrongQuestions.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'wrong-item';
+                div.innerHTML = `<span class="wrong-word">${item.word}</span> : ${item.korean}`;
+                wrongNotesList.appendChild(div);
+            });
+        } else {
+            reQuizBtn.style.display = 'none';
+            wrongNoteContainer.style.display = 'none';
+            finalSummary.innerHTML += `<br><span style="color: #16a34a; font-weight: bold;">🎉 모든 문제를 완벽하게 다 맞히셨습니다!</span>`;
+        }
+    }
+
+    function updateHistoryUI() {
+        const historyList = document.getElementById('history-list');
+        historyList.innerHTML = '';
+        historyLogs.forEach(log => {
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.innerText = log;
+            historyList.appendChild(item);
+        });
+    }
+
+    window.onload = restartAll;
+</script>
+
+</body>
+</html>
